@@ -1,0 +1,25 @@
+{
+  "name": "primate",
+  "version": "1.0.0",
+  "description": "Set up conversion between JSON-serializable primitive Javascript objects and more complex internal objects such as Date and CryptoKey.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup ./src/index.ts --dts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mumingpo/primate.git"
+  },
+  "author": "mumingpo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mumingpo/primate/issues"
+  },
+  "homepage": "https://github.com/mumingpo/primate#readme",
+  "typings": "./dist/index.d.ts",
+  "devDependencies": {
+    "tsup": "^6.1.2"
+  }
+}
