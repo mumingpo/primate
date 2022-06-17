@@ -24,7 +24,7 @@ declare class ArrayCodec<Internal, Primitive extends PJSO> implements CodecInter
     serialize(obj: Array<Internal>): Primitive[];
     deserialize(obj: Array<Primitive>): Internal[];
 }
-declare type ObjectSchema = Record<string, CodecInterface<unknown, PJSO>>;
+declare type ObjectSchema<T extends unknown = unknown> = Record<string, CodecInterface<T, PJSO>>;
 declare type InferInternal<Codec extends CodecInterface<any, PJSO>> = (Codec extends CodecInterface<infer Internal, PJSO> ? Internal : never);
 declare type InferPrimitive<Codec extends CodecInterface<any, PJSO>> = (Codec extends CodecInterface<unknown, infer Primitive> ? Primitive : never);
 declare type InferObjectSchemaInternal<S extends ObjectSchema> = {
@@ -42,10 +42,13 @@ declare class ObjectCodec<S extends ObjectSchema> implements CodecInterface<Infe
     serialize(obj: InferObjectSchemaInternal<S>): InferObjectSchemaPrimitive<S>;
     deserialize(obj: InferObjectSchemaPrimitive<S>): InferObjectSchemaInternal<S>;
 }
+declare function primitive<Internal = unknown, Primitive extends PJSO = PJSO>(serializer: Converter<Internal, Primitive>, deserializer: Converter<Primitive, Internal>): PrimitiveCodec<Internal, Primitive>;
+declare function array<Internal = unknown, Primitive extends PJSO = PJSO>(codec: CodecInterface<Internal, Primitive>): ArrayCodec<Internal, Primitive>;
+declare function object<S extends ObjectSchema>(schema: S): ObjectCodec<S>;
 declare const Primate: {
-    primitive: (serializer: Converter<unknown, PJSO>, deserializer: Converter<PJSO, unknown>) => PrimitiveCodec<unknown, PrimitiveJavaScriptObject>;
-    array: (codec: CodecInterface<unknown, PJSO>) => ArrayCodec<unknown, PrimitiveJavaScriptObject>;
-    object: (schema: ObjectSchema) => ObjectCodec<ObjectSchema>;
+    primitive: typeof primitive;
+    array: typeof array;
+    object: typeof object;
 };
 
 export { ArrayCodec, ObjectCodec, PrimitiveCodec, Primate as default };

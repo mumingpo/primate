@@ -74,10 +74,19 @@ var ObjectCodec = class {
     return deserialized;
   }
 };
+function primitive(serializer, deserializer) {
+  return new PrimitiveCodec(serializer, deserializer);
+}
+function array(codec) {
+  return new ArrayCodec(codec);
+}
+function object(schema) {
+  return new ObjectCodec(schema);
+}
 var Primate = {
-  primitive: (serializer, deserializer) => new PrimitiveCodec(serializer, deserializer),
-  array: (codec) => new ArrayCodec(codec),
-  object: (schema) => new ObjectCodec(schema)
+  primitive,
+  array,
+  object
 };
 var src_default = Primate;
 // Annotate the CommonJS export names for ESM import in node:
