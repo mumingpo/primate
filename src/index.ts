@@ -46,7 +46,7 @@ class ArrayCodec<Internal, Primitive extends PJSO> implements CodecInterface<Arr
 }
 
 // Object Codec
-type ObjectSchema = Record<string, CodecInterface<unknown, PJSO>>;
+type ObjectSchema<T extends unknown = unknown> = Record<string, CodecInterface<T, PJSO>>;
 
 // Infer the Internal, Primitive types given a PrimitiveCodec
 type InferInternal<Codec extends CodecInterface<any, PJSO>> = (Codec extends CodecInterface<infer Internal, PJSO> ? Internal : never);
@@ -96,13 +96,29 @@ class ObjectCodec<S extends ObjectSchema> implements CodecInterface<InferObjectS
 //   ? { [key in keyof S]: InferSchemaInternal<S[key]> }
 //   : never;
 
+function primitive<Internal = unknown, Primitive extends PJSO = PJSO>(
+  serializer: Converter<Internal, Primitive>,
+  deserializer: Converter<Primitive, Internal>,
+) {
+  return (new PrimitiveCodec<Internal, Primitive>(serializer, deserializer));
+};
+
+function array<Internal = unknown, Primitive extends PJSO = PJSO>(
+  codec: CodecInterface<Internal, Primitive>,
+) {
+  return (new ArrayCodec<Internal, Primitive>(codec));
+}
+
+function object<S extends ObjectSchema>(
+  schema: S,
+) {
+  return (new ObjectCodec<S>(schema));
+}
+
 const Primate = {
-  primitive: (
-    serializer: Converter<unknown, PJSO>,
-    deserializer: Converter<PJSO, unknown>,
-  ) => (new PrimitiveCodec(serializer, deserializer)),
-  array: (codec: CodecInterface<unknown, PJSO>) => (new ArrayCodec(codec)),
-  object: (schema: ObjectSchema) => (new ObjectCodec(schema)),
+  primitive,
+  array,
+  object,
 };
 
 export {
