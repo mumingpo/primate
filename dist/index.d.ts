@@ -3,14 +3,14 @@ declare type PrimitiveJavaScriptObject = string | number | boolean | null | Arra
 };
 declare type PJSO = PrimitiveJavaScriptObject;
 declare type Converter<Input, Output> = (input: Input) => Output;
-interface CodecInterface<Internal, Primitive extends PJSO> {
+interface CodecInterface<Internal, Primitive> {
     serialize: Converter<Internal, Primitive>;
     deserialize: Converter<Primitive, Internal>;
 }
 /**
  * A codec converting between a single value
  */
-declare class PrimitiveCodec<Internal, Primitive extends PJSO> implements CodecInterface<Internal, Primitive> {
+declare class PrimitiveCodec<Internal, Primitive> implements CodecInterface<Internal, Primitive> {
     serialize: Converter<Internal, Primitive>;
     deserialize: Converter<Primitive, Internal>;
     constructor(serializer: Converter<Internal, Primitive>, deserializer: Converter<Primitive, Internal>);
@@ -18,37 +18,37 @@ declare class PrimitiveCodec<Internal, Primitive extends PJSO> implements CodecI
 /**
  * Apply a codec over an array schema
  */
-declare class ArrayCodec<Internal, Primitive extends PJSO> implements CodecInterface<Array<Internal>, Array<Primitive>> {
+declare class ArrayCodec<Internal, Primitive> implements CodecInterface<Array<Internal>, Array<Primitive>> {
     codec: CodecInterface<Internal, Primitive>;
     constructor(codec: CodecInterface<Internal, Primitive>);
     serialize(obj: Array<Internal>): Primitive[];
     deserialize(obj: Array<Primitive>): Internal[];
 }
-declare type ObjectSchema<T extends unknown = unknown> = Record<string, CodecInterface<T, PJSO>>;
-declare type InferInternal<Codec extends CodecInterface<any, PJSO>> = (Codec extends CodecInterface<infer Internal, PJSO> ? Internal : never);
-declare type InferPrimitive<Codec extends CodecInterface<any, PJSO>> = (Codec extends CodecInterface<unknown, infer Primitive> ? Primitive : never);
-declare type InferObjectSchemaInternal<S extends ObjectSchema> = {
-    [key in keyof S]: InferInternal<S[key]>;
+declare type Schema = {
+    [key: string]: CodecInterface<any, any>;
 };
-declare type InferObjectSchemaPrimitive<S extends ObjectSchema> = {
-    [key in keyof S]: InferPrimitive<S[key]>;
+declare type InferInternal<S> = {
+    [key in keyof S]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never;
+};
+declare type InferPrimitive<S> = {
+    [key in keyof S]: S[key] extends CodecInterface<any, infer Primitive> ? Primitive : never;
 };
 /**
- * Apply a codec over an object schema
+ * Compose a schema of codecs into a single codec
  */
-declare class ObjectCodec<S extends ObjectSchema> implements CodecInterface<InferObjectSchemaInternal<S>, InferObjectSchemaPrimitive<S>> {
+declare class ObjectCodec<S extends Schema> implements CodecInterface<InferInternal<S>, InferPrimitive<S>> {
     schema: S;
     constructor(schema: S);
-    serialize(obj: InferObjectSchemaInternal<S>): InferObjectSchemaPrimitive<S>;
-    deserialize(obj: InferObjectSchemaPrimitive<S>): InferObjectSchemaInternal<S>;
+    serialize(obj: InferInternal<S>): InferPrimitive<S>;
+    deserialize(obj: InferPrimitive<S>): InferInternal<S>;
 }
-declare function primitive<Internal = unknown, Primitive extends PJSO = PJSO>(serializer: Converter<Internal, Primitive>, deserializer: Converter<Primitive, Internal>): PrimitiveCodec<Internal, Primitive>;
-declare function array<Internal = unknown, Primitive extends PJSO = PJSO>(codec: CodecInterface<Internal, Primitive>): ArrayCodec<Internal, Primitive>;
-declare function object<S extends ObjectSchema>(schema: S): ObjectCodec<S>;
+declare function primitive<Internal, Primitive>(serializer: Converter<Internal, Primitive>, deserializer: Converter<Primitive, Internal>): PrimitiveCodec<Internal, Primitive>;
+declare function array<Internal, Primitive>(codec: CodecInterface<Internal, Primitive>): ArrayCodec<Internal, Primitive>;
+declare function object<S extends Schema>(schema: S): ObjectCodec<S>;
 declare const Primate: {
     primitive: typeof primitive;
     array: typeof array;
     object: typeof object;
 };
 
-export { ArrayCodec, ObjectCodec, PrimitiveCodec, Primate as default };
+export { ArrayCodec, ObjectCodec, PJSO, PrimitiveCodec, Primate as default };

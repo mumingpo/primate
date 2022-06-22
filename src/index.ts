@@ -1,22 +1,23 @@
 type PrimitiveJavaScriptObject = string
-| number
-| boolean
-| null
-| Array<PrimitiveJavaScriptObject>
-| { [key: string]: PrimitiveJavaScriptObject };
+  | number
+  | boolean
+  | null
+  | Array<PrimitiveJavaScriptObject>
+  | { [key: string]: PrimitiveJavaScriptObject };
 
 type PJSO = PrimitiveJavaScriptObject;
 
 type Converter<Input, Output> = (input: Input) => Output;
-interface CodecInterface<Internal, Primitive extends PJSO> {
-  serialize: Converter<Internal, Primitive>,
-  deserialize: Converter<Primitive, Internal>,
+
+interface CodecInterface<Internal, Primitive/* extends PJSO */> {
+  serialize: Converter<Internal, Primitive>;
+  deserialize: Converter<Primitive, Internal>;
 }
 
 /**
  * A codec converting between a single value
  */
-class PrimitiveCodec<Internal, Primitive extends PJSO> implements CodecInterface<Internal, Primitive> {
+class PrimitiveCodec<Internal, Primitive/* extends PJSO */> implements CodecInterface<Internal, Primitive> {
   serialize: Converter<Internal, Primitive>;
   deserialize: Converter<Primitive, Internal>;
   
@@ -29,7 +30,7 @@ class PrimitiveCodec<Internal, Primitive extends PJSO> implements CodecInterface
 /**
  * Apply a codec over an array schema
  */
-class ArrayCodec<Internal, Primitive extends PJSO> implements CodecInterface<Array<Internal>, Array<Primitive>> {
+class ArrayCodec<Internal, Primitive/* extends PJSO */> implements CodecInterface<Array<Internal>, Array<Primitive>> {
   codec: CodecInterface<Internal, Primitive>;
   
   constructor(codec: CodecInterface<Internal, Primitive>) {
@@ -45,74 +46,55 @@ class ArrayCodec<Internal, Primitive extends PJSO> implements CodecInterface<Arr
   }
 }
 
-// Object Codec
-type ObjectSchema<T extends unknown = unknown> = Record<string, CodecInterface<T, PJSO>>;
+// Headache starts here
 
-// Infer the Internal, Primitive types given a PrimitiveCodec
-type InferInternal<Codec extends CodecInterface<any, PJSO>> = (Codec extends CodecInterface<infer Internal, PJSO> ? Internal : never);
-type InferPrimitive<Codec extends CodecInterface<any, PJSO>> = (Codec extends CodecInterface<unknown, infer Primitive> ? Primitive : never);
+type Schema = { [key: string]: CodecInterface<any, any> };
 
-// Infer the Internal, Primitive types given an ObjectSchema
-type InferObjectSchemaInternal<S extends ObjectSchema> = {
-  [key in keyof S]: InferInternal<S[key]>
-};
-type InferObjectSchemaPrimitive<S extends ObjectSchema> = {
-  [key in keyof S]: InferPrimitive<S[key]>
-};
+type InferInternal<S> = { [key in keyof S]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never };
+type InferPrimitive<S> = { [key in keyof S]: S[key] extends CodecInterface<any, infer Primitive> ? Primitive : never };
 
 /**
- * Apply a codec over an object schema
+ * Compose a schema of codecs into a single codec
  */
-class ObjectCodec<S extends ObjectSchema> implements CodecInterface<InferObjectSchemaInternal<S>, InferObjectSchemaPrimitive<S>> {
+class ObjectCodec<S extends Schema> implements CodecInterface<InferInternal<S>, InferPrimitive<S>> {
   schema: S;
 
   constructor(schema: S) {
     this.schema = schema;
   }
 
-  serialize(obj: InferObjectSchemaInternal<S>) {
-    const serialized = Object.keys(obj)
-      .map((key) => ({ [key]: this.schema[key].serialize(obj[key]) }))
-      .reduce((prev, curr) => ({ ...prev, ...curr }));
-    return serialized as InferObjectSchemaPrimitive<S>;
+  serialize(obj: InferInternal<S>) {
+    const serialized = Object.fromEntries(
+      Object.entries(this.schema).map((entry) => ([entry[0], entry[1].serialize(obj[entry[0]])])),
+    );
+    return serialized as InferPrimitive<S>;
   }
 
-  deserialize(obj: InferObjectSchemaPrimitive<S>) {
-    const deserialized = Object.keys(obj)
-      .map((key) => ({ [key]: this.schema[key].deserialize(obj[key]) }))
-      .reduce((prev, curr) => ({ ...prev, ...curr }));
-    return deserialized as InferObjectSchemaInternal<S>;
+  deserialize(obj: InferPrimitive<S>) {
+    const deserialized = Object.fromEntries(
+      Object.entries(this.schema).map((entry) => ([entry[0], entry[1].deserialize(obj[entry[0]])])),
+    );
+    return deserialized as InferInternal<S>;
   }
 }
 
-// ---- Cannot get it to work! ----
-
-// /**
-//  * Apply a tuple of codecs over a fixed-length array.
-//  */
-
-// type TupleSchema = Array<CodecInterface<unknown, PJSO>>;
-// type InferArraySchemaInternal<S extends TupleSchema> = S extends TupleSchema
-//   ? { [key in keyof S]: InferSchemaInternal<S[key]> }
-//   : never;
-
-function primitive<Internal = unknown, Primitive extends PJSO = PJSO>(
+function primitive<Internal, Primitive/* extends PJSO */>(
   serializer: Converter<Internal, Primitive>,
   deserializer: Converter<Primitive, Internal>,
 ) {
   return (new PrimitiveCodec<Internal, Primitive>(serializer, deserializer));
 };
 
-function array<Internal = unknown, Primitive extends PJSO = PJSO>(
+function array<Internal, Primitive/* extends PJSO */>(
   codec: CodecInterface<Internal, Primitive>,
 ) {
   return (new ArrayCodec<Internal, Primitive>(codec));
 }
 
-function object<S extends ObjectSchema>(
+function object<S extends Schema>(
   schema: S,
 ) {
-  return (new ObjectCodec<S>(schema));
+  return (new ObjectCodec(schema));
 }
 
 const Primate = {
@@ -125,7 +107,7 @@ export {
   PrimitiveCodec,
   ArrayCodec,
   ObjectCodec,
-  // TupleCodec,
 };
 
 export default Primate;
+export type { PJSO };
