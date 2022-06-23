@@ -29,45 +29,69 @@ module.exports = __toCommonJS(src_exports);
 var PrimitiveCodec = class {
   serialize;
   deserialize;
-  constructor(serializer, deserializer) {
+  name;
+  constructor(serializer, deserializer, name = "") {
     this.serialize = serializer;
     this.deserialize = deserializer;
+    this.name = name;
   }
 };
 var ArrayCodec = class {
   codec;
-  constructor(codec) {
+  name;
+  constructor(codec, name = "") {
     this.codec = codec;
+    this.name = name;
   }
   serialize(obj) {
     return obj.map(this.codec.serialize);
   }
   deserialize(obj) {
+    if (!Array.isArray(obj)) {
+      throw new Error(`ArrayCodec${this.name ? ` ${this.name}` : ""} cannot deserialize something that is not an array.`);
+    }
     return obj.map(this.codec.deserialize);
   }
 };
+function hasOwnProperty(obj, prop) {
+  return obj.hasOwnProperty(prop);
+}
 var ObjectCodec = class {
   schema;
-  constructor(schema) {
+  name;
+  constructor(schema, name = "") {
     this.schema = schema;
+    this.name = name;
   }
   serialize(obj) {
     const serialized = Object.fromEntries(Object.entries(this.schema).map((entry) => [entry[0], entry[1].serialize(obj[entry[0]])]));
     return serialized;
   }
   deserialize(obj) {
-    const deserialized = Object.fromEntries(Object.entries(this.schema).map((entry) => [entry[0], entry[1].deserialize(obj[entry[0]])]));
+    if (typeof obj !== "object") {
+      throw new Error(`ObjectCodec${this.name ? ` ${this.name}` : ""} cannot deserialize something that is not an object.`);
+    }
+    if (obj === null) {
+      throw new Error(`ObjectCodec${this.name ? ` ${this.name}` : ""} cannot deserialize null.`);
+    }
+    const deserialized = Object.fromEntries(Object.entries(this.schema).map((entry) => {
+      const [key, codec] = entry;
+      if (!hasOwnProperty(obj, key)) {
+        throw new Error(`ObjectCodec${this.name ? ` ${this.name}` : ""} cannot deserialize object without key ${key}.`);
+      }
+      return [key, codec.deserialize(obj[key])];
+    }));
     return deserialized;
   }
 };
-function primitive(serializer, deserializer) {
-  return new PrimitiveCodec(serializer, deserializer);
+function primitive(serializer, deserializer, name = "") {
+  return new PrimitiveCodec(serializer, deserializer, name);
 }
-function array(codec) {
-  return new ArrayCodec(codec);
+function array(codec, name = "") {
+  return new ArrayCodec(codec, name);
 }
-function object(schema) {
-  return new ObjectCodec(schema);
+function object(schema, name = "") {
+  return new ObjectCodec(schema, name);
 }
 var Primate = {
   primitive,

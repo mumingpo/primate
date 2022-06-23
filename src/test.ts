@@ -1,9 +1,24 @@
 import p from './index';
-import type { PJSO } from './index';
+import type {
+  PJSO,
+  InferInternal,
+  InferPrimitive,
+} from './index';
 
-const identity = p.primitive(
-  (obj: PJSO) => (obj),
-  (obj: PJSO) => (obj),
+const stringCodec = p.primitive<string, string>(
+  (s: string) => (s),
+  (unk: unknown) => (`${unk}`),
+);
+
+const dateCodec = p.primitive<Date, string>(
+  (date: Date) => (date.toISOString()),
+  (unk: unknown) => {
+    const date = new Date(`${unk}`);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error(`${unk} is not a valid date.`);
+    }
+    return date;
+  },
 );
 
 type Task = {
@@ -36,21 +51,16 @@ type RawUser = {
   tasks: Array<RawTask>,
 };
 
-const dateCodec = p.primitive(
-  (date: Date) => (date.toISOString()),
-  (isoString: string) => (new Date(isoString)),
-);
-
 const taskCodec = p.object({
-  title: identity,
-  description: identity,
+  title: stringCodec,
+  description: stringCodec,
   createdAt: dateCodec,
   updatedAt: dateCodec,
 });
 
 const userCodecSchema = {
-  username: identity,
-  email: identity,
+  username: stringCodec,
+  email: stringCodec,
   createdAt: dateCodec,
   updatedAt: dateCodec,
   tasks: p.array(taskCodec),
@@ -58,14 +68,14 @@ const userCodecSchema = {
 
 const userCodec = p.object(userCodecSchema);
 
-const exampleTask = {
+const exampleTask: Task = {
   title: 'abcdef',
   description: 'Lorem ipsum dolorem sit amet.',
   createdAt: new Date('2000-01-01T00:00:00.000Z'),
   updatedAt: new Date('2020-01-01T00:00:00.000Z'),
 };
 
-const user = {
+const user: User = {
   username: 'abcdef',
   email: 'abcdef@ghi.jkl',
   createdAt: new Date('2000-01-01T00:00:00.000Z'),
@@ -73,17 +83,17 @@ const user = {
   tasks: [exampleTask, exampleTask, exampleTask],
 };
 
-const serializedUser = userCodec.serialize(user);
+const serializedUser: InferPrimitive<typeof userCodecSchema> = userCodec.serialize(user);
 serializedUser.tasks[0].createdAt.charAt(0);
 
-const exampleRawTask = {
+const exampleRawTask: RawTask = {
   title: 'abcdef',
   description: 'Lorem ipsum dolorem sit amet.',
   createdAt: '2000-01-01T00:00:00.000Z',
   updatedAt: '2020-01-01T00:00:00.000Z',
 };
 
-const rawUser = {
+const rawUser: RawUser = {
   username: 'abcdef',
   email: 'abcdef@ghi.jkl',
   createdAt: '2000-01-01T00:00:00.000Z',
@@ -91,5 +101,5 @@ const rawUser = {
   tasks: [exampleRawTask, exampleRawTask, exampleRawTask]
 }
 
-const deserializedUser = userCodec.deserialize(rawUser);
+const deserializedUser: InferInternal<typeof userCodecSchema> = userCodec.deserialize(rawUser);
 deserializedUser.tasks[0].createdAt.getTime();
