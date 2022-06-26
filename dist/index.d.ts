@@ -7,6 +7,8 @@ interface CodecInterface<Internal, Primitive> {
     serialize: Converter<Internal, Primitive>;
     deserialize: Converter<unknown, Internal>;
 }
+declare type InferInternal<C extends CodecInterface<any, any>> = C extends CodecInterface<infer Internal, any> ? Internal : never;
+declare type InferPrimitive<C extends CodecInterface<any, any>> = C extends CodecInterface<any, infer Primitive> ? Primitive : never;
 /**
  * A codec converting between a single value
  */
@@ -29,21 +31,21 @@ declare class ArrayCodec<Internal, Primitive> implements CodecInterface<Array<In
 declare type Schema = {
     [key: string]: CodecInterface<any, any>;
 };
-declare type InferInternal<S> = {
+declare type InferObjectInternal<S> = {
     [key in keyof S]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never;
 };
-declare type InferPrimitive<S> = {
+declare type InferObjectPrimitive<S> = {
     [key in keyof S]: S[key] extends CodecInterface<any, infer Primitive> ? Primitive : never;
 };
 /**
  * Compose a schema of codecs into a single codec
  */
-declare class ObjectCodec<S extends Schema> implements CodecInterface<InferInternal<S>, InferPrimitive<S>> {
+declare class ObjectCodec<S extends Schema> implements CodecInterface<InferObjectInternal<S>, InferObjectPrimitive<S>> {
     schema: S;
     name: string;
     constructor(schema: S, name?: string);
-    serialize(obj: InferInternal<S>): InferPrimitive<S>;
-    deserialize(obj: unknown): InferInternal<S>;
+    serialize(obj: InferObjectInternal<S>): InferObjectPrimitive<S>;
+    deserialize(obj: unknown): InferObjectInternal<S>;
 }
 declare function primitive<Internal, Primitive>(serializer: Converter<Internal, Primitive>, deserializer: Converter<unknown, Internal>, name?: string): PrimitiveCodec<Internal, Primitive>;
 declare function array<Internal, Primitive>(codec: CodecInterface<Internal, Primitive>, name?: string): ArrayCodec<Internal, Primitive>;
