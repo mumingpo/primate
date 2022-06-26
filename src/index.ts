@@ -14,6 +14,9 @@ interface CodecInterface<Internal, Primitive/* extends PJSO */> {
   deserialize: Converter<unknown, Internal>;
 }
 
+type InferInternal<C extends CodecInterface<any, any>> = C extends CodecInterface<infer Internal, any> ? Internal : never;
+type InferPrimitive<C extends CodecInterface<any, any>> = C extends CodecInterface<any, infer Primitive> ? Primitive : never;
+
 /**
  * A codec converting between a single value
  */
@@ -56,8 +59,8 @@ class ArrayCodec<Internal, Primitive/* extends PJSO */> implements CodecInterfac
 // Headache starts here
 type Schema = { [key: string]: CodecInterface<any, any> };
 
-type InferInternal<S> = { [key in keyof S]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never };
-type InferPrimitive<S> = { [key in keyof S]: S[key] extends CodecInterface<any, infer Primitive> ? Primitive : never };
+type InferObjectInternal<S> = { [key in keyof S]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never };
+type InferObjectPrimitive<S> = { [key in keyof S]: S[key] extends CodecInterface<any, infer Primitive> ? Primitive : never };
 
 // https://fettblog.eu/typescript-hasownproperty/
 function hasOwnProperty<T extends {}, K extends PropertyKey>(obj: T, prop: K): obj is T & Record<K, unknown> {
@@ -67,7 +70,7 @@ function hasOwnProperty<T extends {}, K extends PropertyKey>(obj: T, prop: K): o
 /**
  * Compose a schema of codecs into a single codec
  */
-class ObjectCodec<S extends Schema> implements CodecInterface<InferInternal<S>, InferPrimitive<S>> {
+class ObjectCodec<S extends Schema> implements CodecInterface<InferObjectInternal<S>, InferObjectPrimitive<S>> {
   schema: S;
   name: string;
 
@@ -76,11 +79,11 @@ class ObjectCodec<S extends Schema> implements CodecInterface<InferInternal<S>, 
     this.name = name;
   }
 
-  serialize(obj: InferInternal<S>) {
+  serialize(obj: InferObjectInternal<S>) {
     const serialized = Object.fromEntries(
       Object.entries(this.schema).map((entry) => ([entry[0], entry[1].serialize(obj[entry[0]])])),
     );
-    return serialized as InferPrimitive<S>;
+    return serialized as InferObjectPrimitive<S>;
   }
 
   deserialize(obj: unknown) {
@@ -101,7 +104,7 @@ class ObjectCodec<S extends Schema> implements CodecInterface<InferInternal<S>, 
         return [key, codec.deserialize(obj[key])];
       }),
     );
-    return deserialized as InferInternal<S>;
+    return deserialized as InferObjectInternal<S>;
   }
 }
 

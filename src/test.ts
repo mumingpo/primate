@@ -1,13 +1,8 @@
-import p from './index';
-import type {
-  PJSO,
-  InferInternal,
-  InferPrimitive,
-} from './index';
+import p, { InferInternal, InferPrimitive } from './index';
 
 const stringCodec = p.primitive<string, string>(
   (s: string) => (s),
-  (unk: unknown) => (`${unk}`),
+  (unk: unknown) => (unk ? `${unk}` : ''),
 );
 
 const dateCodec = p.primitive<Date, string>(
@@ -21,58 +16,31 @@ const dateCodec = p.primitive<Date, string>(
   },
 );
 
-type Task = {
-  title: string,
-  description: string,
-  createdAt: Date,
-  updatedAt: Date,
-};
-
-type RawTask = {
-  title: string,
-  description: string,
-  createdAt: string,
-  updatedAt: string,
-};
-
-type User = {
-  username: string,
-  email: string,
-  createdAt: Date,
-  updatedAt: Date,
-  tasks: Array<Task>,
-};
-
-type RawUser = {
-  username: string,
-  email: string,
-  createdAt: string,
-  updatedAt: string,
-  tasks: Array<RawTask>,
-};
-
 const taskCodec = p.object({
   title: stringCodec,
   description: stringCodec,
   createdAt: dateCodec,
   updatedAt: dateCodec,
 });
+type Task = InferInternal<typeof taskCodec>;
+type RawTask = InferPrimitive<typeof taskCodec>;
 
-const userCodecSchema = {
+const userCodec = p.object({
   username: stringCodec,
   email: stringCodec,
   createdAt: dateCodec,
   updatedAt: dateCodec,
   tasks: p.array(taskCodec),
-};
-
-const userCodec = p.object(userCodecSchema);
+});
+type User = InferInternal<typeof userCodec>;
+type RawUser = InferPrimitive<typeof userCodec>;
 
 const exampleTask: Task = {
   title: 'abcdef',
   description: 'Lorem ipsum dolorem sit amet.',
   createdAt: new Date('2000-01-01T00:00:00.000Z'),
   updatedAt: new Date('2020-01-01T00:00:00.000Z'),
+  // chicken: 'bling', // should give error
 };
 
 const user: User = {
@@ -80,17 +48,27 @@ const user: User = {
   email: 'abcdef@ghi.jkl',
   createdAt: new Date('2000-01-01T00:00:00.000Z'),
   updatedAt: new Date('2020-01-01T00:00:00.000Z'),
-  tasks: [exampleTask, exampleTask, exampleTask],
+  tasks: [
+    exampleTask,
+    exampleTask,
+    exampleTask,
+    {
+      ...exampleTask,
+      // chicken: 'bling', // should give error
+    },
+  ],
 };
 
-const serializedUser: InferPrimitive<typeof userCodecSchema> = userCodec.serialize(user);
+const serializedUser: InferPrimitive<typeof userCodec> = userCodec.serialize(user);
 serializedUser.tasks[0].createdAt.charAt(0);
+// serializedUser.tasks[0].createdAt.getTime(); // should give error
 
 const exampleRawTask: RawTask = {
   title: 'abcdef',
   description: 'Lorem ipsum dolorem sit amet.',
   createdAt: '2000-01-01T00:00:00.000Z',
   updatedAt: '2020-01-01T00:00:00.000Z',
+  // chicken: 'bling', // should give error
 };
 
 const rawUser: RawUser = {
@@ -98,8 +76,17 @@ const rawUser: RawUser = {
   email: 'abcdef@ghi.jkl',
   createdAt: '2000-01-01T00:00:00.000Z',
   updatedAt: '2020-01-01T00:00:00.000Z',
-  tasks: [exampleRawTask, exampleRawTask, exampleRawTask]
+  tasks: [
+    exampleRawTask,
+    exampleRawTask,
+    exampleRawTask,
+    {
+      ...exampleRawTask,
+      // chicken: 'bling', // should give error
+    },
+  ]
 }
 
-const deserializedUser: InferInternal<typeof userCodecSchema> = userCodec.deserialize(rawUser);
+const deserializedUser: InferInternal<typeof userCodec> = userCodec.deserialize(rawUser);
 deserializedUser.tasks[0].createdAt.getTime();
+// deserializedUser.tasks[0].createdAt.charAt(0); // should give error
