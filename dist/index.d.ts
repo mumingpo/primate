@@ -1,7 +1,3 @@
-declare type PrimitiveJavaScriptObject = string | number | boolean | null | Array<PrimitiveJavaScriptObject> | {
-    [key: string]: PrimitiveJavaScriptObject;
-};
-declare type PJSO = PrimitiveJavaScriptObject;
 declare type Converter<Input, Output> = (input: Input) => Output;
 interface CodecInterface<Internal, Primitive> {
     serialize: Converter<Internal, Primitive>;
@@ -47,13 +43,30 @@ declare class ObjectCodec<S extends Schema> implements CodecInterface<InferObjec
     serialize(obj: InferObjectInternal<S>): InferObjectPrimitive<S>;
     deserialize(obj: unknown): InferObjectInternal<S>;
 }
+
+declare const strict: {
+    booleanCodec: PrimitiveCodec<boolean, boolean>;
+    numberCodec: PrimitiveCodec<number, number>;
+    stringCodec: PrimitiveCodec<string, string>;
+};
+
+declare const makeEnum: {
+    makeEnumNumberCodec: <T extends readonly number[]>(allowedValues: T, defaultValue?: T[number] | null) => PrimitiveCodec<T[number], T[number]>;
+    makeEnumStringCodec: <T_1 extends readonly string[]>(allowedValues: T_1, defaultValue?: T_1[number] | undefined) => PrimitiveCodec<T_1[number], T_1[number]>;
+};
+
+declare type PrimitiveJavaScriptObject = null | boolean | number | string | Array<PrimitiveJavaScriptObject> | {
+    [key: string]: PrimitiveJavaScriptObject;
+};
+declare type PJSO = PrimitiveJavaScriptObject;
 declare function primitive<Internal, Primitive>(serializer: Converter<Internal, Primitive>, deserializer: Converter<unknown, Internal>, name?: string): PrimitiveCodec<Internal, Primitive>;
 declare function array<Internal, Primitive>(codec: CodecInterface<Internal, Primitive>, name?: string): ArrayCodec<Internal, Primitive>;
 declare function object<S extends Schema>(schema: S, name?: string): ObjectCodec<S>;
-declare const Primate: {
+
+declare const _default: {
     primitive: typeof primitive;
     array: typeof array;
     object: typeof object;
 };
 
-export { ArrayCodec, InferInternal, InferPrimitive, ObjectCodec, PJSO, PrimitiveCodec, Primate as default };
+export { ArrayCodec, InferInternal, InferPrimitive, ObjectCodec, PJSO, PrimitiveCodec, _default as default, makeEnum, strict };
