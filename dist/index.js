@@ -22,6 +22,7 @@ var src_exports = {};
 __export(src_exports, {
   ArrayCodec: () => ArrayCodec,
   ObjectCodec: () => ObjectCodec,
+  OptionalCodec: () => OptionalCodec,
   PrimitiveCodec: () => PrimitiveCodec,
   default: () => src_default,
   makeEnum: () => makeEnum_default,
@@ -34,18 +35,22 @@ var formatName = (name, codecType) => `${codecType}${name ? ` ${name}` : ""}`;
 var PrimitiveCodec = class {
   serialize;
   deserialize;
+  isOptional;
   name;
   constructor(serializer4, deserializer4, name = "") {
     this.serialize = serializer4;
     this.deserialize = deserializer4;
+    this.isOptional = false;
     this.name = name;
   }
 };
 var ArrayCodec = class {
   codec;
+  isOptional;
   name;
   constructor(codec, name = "") {
     this.codec = codec;
+    this.isOptional = false;
     this.name = name;
   }
   serialize(obj) {
@@ -63,9 +68,11 @@ function hasOwnProperty(obj, prop) {
 }
 var ObjectCodec = class {
   schema;
+  isOptional;
   name;
   constructor(schema, name = "") {
     this.schema = schema;
+    this.isOptional = false;
     this.name = name;
   }
   serialize(obj) {
@@ -93,7 +100,10 @@ ${error.message}`);
     const deserialized = Object.fromEntries(Object.entries(this.schema).map((entry) => {
       const [key, codec] = entry;
       if (!hasOwnProperty(obj, key)) {
-        throw new Error(`${formatName(this.name, "ObjectCodec")} cannot deserialize object without key ${key}.`);
+        if (!codec.isOptional) {
+          throw new Error(`${formatName(this.name, "ObjectCodec")} cannot deserialize object without key ${key}.`);
+        }
+        return [key, codec.deserialize(void 0)];
       }
       try {
         const deserializedValue = codec.deserialize(obj[key]);
@@ -105,6 +115,28 @@ ${error.message}`);
       }
     }));
     return deserialized;
+  }
+};
+var OptionalCodec = class {
+  codec;
+  isOptional;
+  name;
+  constructor(codec, name = "") {
+    this.codec = codec;
+    this.isOptional = true;
+    this.name = name;
+  }
+  serialize(obj) {
+    if (obj === void 0) {
+      return void 0;
+    }
+    return this.codec.serialize(obj);
+  }
+  deserialize(obj) {
+    if (obj === void 0) {
+      return void 0;
+    }
+    return this.codec.deserialize(obj);
   }
 };
 
@@ -200,7 +232,7 @@ var makeEnum = {
 };
 var makeEnum_default = makeEnum;
 
-// src/index.ts
+// src/primate.ts
 function primitive(serializer4, deserializer4, name = "") {
   return new PrimitiveCodec(serializer4, deserializer4, name);
 }
@@ -210,15 +242,24 @@ function array(codec, name = "") {
 function object(schema, name = "") {
   return new ObjectCodec(schema, name);
 }
-var src_default = {
+function optional(codec) {
+  return new OptionalCodec(codec);
+}
+var primate = {
   primitive,
   array,
-  object
+  object,
+  optional
 };
+var primate_default = primate;
+
+// src/index.ts
+var src_default = primate_default;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ArrayCodec,
   ObjectCodec,
+  OptionalCodec,
   PrimitiveCodec,
   makeEnum,
   strict

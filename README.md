@@ -63,7 +63,7 @@ dateArrayCodec.serialize([date, date, date]);
 dateArrayCodec.deserialize([dateString, dateString, dateString]);
 ```
 
-### object codec
+### object codec, optional codec
 
 An object codec applies a schema of objects over an object.
 
@@ -76,10 +76,10 @@ const userCodec = p.object({
   name: stringCodec,
   birthDay: dateCodec,
   favoriteColors: p.array(stringCodec),
-  pet: p.object({
+  pets: p.optional(p.array(p.object({
     name: stringCodec,
     birthDay: dateCodec,
-  }),
+  }))),
 });
 ```
 

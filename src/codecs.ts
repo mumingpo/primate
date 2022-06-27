@@ -1,9 +1,21 @@
 type Converter<Input, Output> = (input: Input) => Output;
 
-interface CodecInterface<Internal, Primitive/* extends PJSO */> {
+interface RequiredCodecInterface<Internal, Primitive> {
   serialize: Converter<Internal, Primitive>;
   deserialize: Converter<unknown, Internal>;
+  isOptional: false;
 }
+interface OptionalCodecInterface<Internal, Primitive> {
+  serialize: Converter<Internal, Primitive>;
+  deserialize: Converter<unknown, Internal>;
+  isOptional: true;
+}
+
+interface CodecInterface<Internal, Primitive> {
+  serialize: Converter<Internal, Primitive>;
+  deserialize: Converter<unknown, Internal>;
+  isOptional: boolean;
+};
 
 type InferInternal<C extends CodecInterface<any, any>> = C extends CodecInterface<infer Internal, any> ? Internal : never;
 type InferPrimitive<C extends CodecInterface<any, any>> = C extends CodecInterface<any, infer Primitive> ? Primitive : never;
@@ -16,11 +28,13 @@ const formatName = (name: string, codecType: string) => (`${codecType}${name ? `
 class PrimitiveCodec<Internal, Primitive/* extends PJSO */> implements CodecInterface<Internal, Primitive> {
   serialize: Converter<Internal, Primitive>;
   deserialize: Converter<unknown, Internal>;
+  isOptional: false;
   name: string;
   
   constructor(serializer: Converter<Internal, Primitive>, deserializer: Converter<unknown, Internal>, name: string = '') {
     this.serialize = serializer;
     this.deserialize = deserializer;
+    this.isOptional = false;
     this.name = name;
   }
 }
@@ -30,10 +44,12 @@ class PrimitiveCodec<Internal, Primitive/* extends PJSO */> implements CodecInte
  */
 class ArrayCodec<Internal, Primitive/* extends PJSO */> implements CodecInterface<Array<Internal>, Array<Primitive>> {
   codec: CodecInterface<Internal, Primitive>;
+  isOptional: false;
   name: string;
   
   constructor(codec: CodecInterface<Internal, Primitive>, name: string = '') {
     this.codec = codec;
+    this.isOptional = false;
     this.name = name;
   }
 
@@ -52,8 +68,18 @@ class ArrayCodec<Internal, Primitive/* extends PJSO */> implements CodecInterfac
 // Headache starts here
 type Schema = { [key: string]: CodecInterface<any, any> };
 
-type InferObjectInternal<S> = { [key in keyof S]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never };
-type InferObjectPrimitive<S> = { [key in keyof S]: S[key] extends CodecInterface<any, infer Primitive> ? Primitive : never };
+type InferObjectInternalAll<S> = { [key in keyof S]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never };
+type InferObjectPrimitiveAll<S> = { [key in keyof S]: S[key] extends CodecInterface<any, infer Primitive> ? Primitive : never };
+
+type InferObjectInternalRequired<S> = {
+  [key in keyof S as S[key] extends RequiredCodecInterface<any, any> ? key : never]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never 
+};
+type InferObjectPrimitiveRequired<S> = {
+  [key in keyof S as S[key] extends RequiredCodecInterface<any, any> ? key : never]: S[key] extends CodecInterface<any, infer Primitive> ? Primitive : never 
+};
+
+type InferObjectInternal<S> = InferObjectInternalRequired<S> & Partial<InferObjectInternalAll<S>>;
+type InferObjectPrimitive<S> = InferObjectPrimitiveRequired<S> & Partial<InferObjectPrimitiveAll<S>>;
 
 // https://fettblog.eu/typescript-hasownproperty/
 function hasOwnProperty<T extends {}, K extends PropertyKey>(obj: T, prop: K): obj is T & Record<K, unknown> {
@@ -65,10 +91,12 @@ function hasOwnProperty<T extends {}, K extends PropertyKey>(obj: T, prop: K): o
  */
 class ObjectCodec<S extends Schema> implements CodecInterface<InferObjectInternal<S>, InferObjectPrimitive<S>> {
   schema: S;
+  isOptional: false;
   name: string;
 
   constructor(schema: S, name: string = '') {
     this.schema = schema;
+    this.isOptional = false;
     this.name = name;
   }
 
@@ -102,7 +130,10 @@ class ObjectCodec<S extends Schema> implements CodecInterface<InferObjectInterna
       Object.entries(this.schema).map((entry) => {
         const [key, codec] = entry;
         if (!hasOwnProperty(obj, key)) {
-          throw new Error(`${formatName(this.name, 'ObjectCodec')} cannot deserialize object without key ${key}.`);
+          if (!codec.isOptional) {
+            throw new Error(`${formatName(this.name, 'ObjectCodec')} cannot deserialize object without key ${key}.`);
+          }
+          return [key, codec.deserialize(undefined)];
         }
         try {
           const deserializedValue = codec.deserialize(obj[key]);
@@ -117,10 +148,37 @@ class ObjectCodec<S extends Schema> implements CodecInterface<InferObjectInterna
   }
 }
 
+class OptionalCodec<Internal, Primitive> implements CodecInterface<Internal | undefined, Primitive | undefined> {
+  codec: CodecInterface<Internal, Primitive>;
+  isOptional: true;
+  name: string;
+
+  constructor(codec: CodecInterface<Internal, Primitive>, name: string = '') {
+    this.codec = codec;
+    this.isOptional = true;
+    this.name = name;
+  }
+
+  serialize(obj: Internal | undefined) {
+    if (obj === undefined) {
+      return undefined;
+    }
+    return this.codec.serialize(obj);
+  }
+
+  deserialize(obj: unknown) {
+    if (obj === undefined) {
+      return undefined;
+    }
+    return this.codec.deserialize(obj);
+  }
+}
+
 export {
   PrimitiveCodec,
   ArrayCodec,
   ObjectCodec,
+  OptionalCodec,
 };
 export type {
   Converter,

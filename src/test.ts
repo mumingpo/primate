@@ -1,20 +1,16 @@
-import p, { InferInternal, InferPrimitive } from './index';
+import p, { InferInternal, InferPrimitive, strict } from './index';
 
-const stringCodec = p.primitive<string, string>(
-  (s: string) => (s),
-  (unk: unknown) => (unk ? `${unk}` : ''),
-);
+const stringCodec = strict.stringCodec;
 
-const dateCodec = p.primitive<Date, string>(
-  (date: Date) => (date.toISOString()),
-  (unk: unknown) => {
-    const date = new Date(`${unk}`);
-    if (Number.isNaN(date.getTime())) {
-      throw new Error(`${unk} is not a valid date.`);
-    }
-    return date;
-  },
-);
+const dateSerializer = (date: Date) => (date.toISOString());
+const dateDeserializer = (unk: unknown) => {
+  const date = new Date(`${unk}`);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`${unk} is not a valid date.`);
+  }
+  return date;
+};
+const dateCodec = p.primitive(dateSerializer, dateDeserializer, 'dateCodec');
 
 const taskCodec = p.object({
   title: stringCodec,
@@ -31,6 +27,7 @@ const userCodec = p.object({
   createdAt: dateCodec,
   updatedAt: dateCodec,
   tasks: p.array(taskCodec),
+  petName: p.optional(stringCodec),
 });
 type User = InferInternal<typeof userCodec>;
 type RawUser = InferPrimitive<typeof userCodec>;
@@ -57,10 +54,12 @@ const user: User = {
       // chicken: 'bling', // should give error
     },
   ],
+  petName: 'bling', // should be optional
+  // chicken: 'aa', // should give error
 };
 
-const serializedUser: InferPrimitive<typeof userCodec> = userCodec.serialize(user);
-serializedUser.tasks[0].createdAt.charAt(0);
+const serializedUser = userCodec.serialize(user);
+serializedUser.tasks[0].createdAt.charAt(0);  // should be able to run
 // serializedUser.tasks[0].createdAt.getTime(); // should give error
 
 const exampleRawTask: RawTask = {
@@ -84,9 +83,11 @@ const rawUser: RawUser = {
       ...exampleRawTask,
       // chicken: 'bling', // should give error
     },
-  ]
+  ],
+  petName: 'bling', // should be optional
+  // chicken: 'aa', // should give error
 }
 
-const deserializedUser: InferInternal<typeof userCodec> = userCodec.deserialize(rawUser);
-deserializedUser.tasks[0].createdAt.getTime();
+const deserializedUser = userCodec.deserialize(rawUser);
+deserializedUser.tasks[0].createdAt.getTime(); // should be able to run
 // deserializedUser.tasks[0].createdAt.charAt(0); // should give error
