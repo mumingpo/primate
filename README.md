@@ -78,7 +78,7 @@ const userCodec = p.object({
   favoriteColors: p.array(stringCodec),
   pets: p.optional(p.array(p.object({
     name: stringCodec,
-    birthDay: dateCodec,
+    birthDay: p.optional(dateCodec),
   }))),
 });
 ```
@@ -97,10 +97,10 @@ user: User = {
   name: 'Test McTestface',
   birthDay: date,
   favoriteColors: ['green', 'color of pass', 'the delicious golden-brown of a freshly made KFC chicken tender'],
-  pet: {
-    name: 'Pesty McPestface',
-    birthDay: date,
-  }
+  pets: [
+    { name: 'Besty McBestface', birthDay: date },
+    { name: 'Pesty McPestface' },
+  ],
 };
 
 UserCodec.serialize(user);
