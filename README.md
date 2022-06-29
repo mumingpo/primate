@@ -22,8 +22,6 @@ This is some serious violation of the DRY principle, and the serialization and d
 
 ## example usage
 
-Example usage could be found in [src/test.ts](https://github.com/mumingpo/primate/blob/main/src/test.ts)
-
 ### primitive codec
 
 A primitive codec `serialize` an internal format to a primitive format, and `deserialize` a unknown typed object to an internal format.
@@ -70,7 +68,7 @@ An object codec applies a schema of objects over an object.
 Can nest other objectCodecs and arrayCodecs.
 
 ```typescript
-const stringCodec = ...;
+const stringCodec = strict.stringCodec;
 
 const userCodec = p.object({
   name: stringCodec,
@@ -90,10 +88,10 @@ Generate types from codec to aid in schema-driven design.
 ```typescript
 import { InferInternal, InferPrimitive } from '@mumingpo/primate';
 
-type User = InferInternal<UserCodec>;
-type Primate = InferPrimitive<UserCodec>; // cough
+type User = InferInternal<typeof userCodec>;
+type Primate = InferPrimitive<typeof userCodec>; // cough
 
-user: User = {
+const user: User = {
   name: 'Test McTestface',
   birthDay: date,
   favoriteColors: ['green', 'color of pass', 'the delicious golden-brown of a freshly made KFC chicken tender'],
@@ -103,5 +101,25 @@ user: User = {
   ],
 };
 
-UserCodec.serialize(user);
+userCodec.serialize(user);
+
+const primate: Primate = {
+  name: 'Insert name here',
+  birthDay: dateString,
+  favoriteColors: [],
+};
+
+userCodec.deserialize(primate);
+```
+
+### strict codecs
+
+The following "strict" (raises error when deserializing wrong type) primitive codecs for basic types are defined in the `strict` package for your convenience.
+
+```typescript
+import p, { strict } from '@mumingpo/primate';
+
+strict.booleanCodec = p.primitive<boolean, boolean>(/* ... */);
+strict.numberCodec = p.primitive<number, number>(/* ... */);
+strict.stringCodec = p.primitive<string, string>(/* ... */);
 ```

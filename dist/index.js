@@ -63,8 +63,8 @@ var ArrayCodec = class {
     return obj.map(this.codec.deserialize);
   }
 };
-function hasOwnProperty(obj, prop) {
-  return obj.hasOwnProperty(prop);
+function hasProperty(obj, prop) {
+  return prop in obj;
 }
 var ObjectCodec = class {
   schema;
@@ -76,15 +76,20 @@ var ObjectCodec = class {
     this.name = name;
   }
   serialize(obj) {
-    const serialized = Object.fromEntries(Object.entries(this.schema).map((entry) => {
-      const key = entry[0];
-      const codec = entry[1];
+    const serialized = Object.fromEntries(Object.entries(this.schema).flatMap((entry) => {
+      const [key, codec] = entry;
+      if (!(key in obj)) {
+        if (!codec.isOptional) {
+          throw new Error(`${formatName(this.name, "ObjectCodec")} requires key "${key}" to serialize ${obj}.`);
+        }
+        return [];
+      }
       try {
         const serializedValue = codec.serialize(obj[key]);
-        return [key, serializedValue];
+        return [[key, serializedValue]];
       } catch (e) {
         const error = e;
-        throw new Error(`${formatName(this.name, "ObjectCodec")} encountered an error while serializing value with key ${key}:
+        throw new Error(`${formatName(this.name, "ObjectCodec")} encountered an error while serializing value with key "${key}":
 ${error.message}`);
       }
     }));
@@ -97,17 +102,17 @@ ${error.message}`);
     if (obj === null) {
       throw new Error(`${formatName(this.name, "ObjectCodec")} cannot deserialize null.`);
     }
-    const deserialized = Object.fromEntries(Object.entries(this.schema).map((entry) => {
+    const deserialized = Object.fromEntries(Object.entries(this.schema).flatMap((entry) => {
       const [key, codec] = entry;
-      if (!hasOwnProperty(obj, key)) {
+      if (!hasProperty(obj, key)) {
         if (!codec.isOptional) {
-          throw new Error(`${formatName(this.name, "ObjectCodec")} cannot deserialize object without key ${key}.`);
+          throw new Error(`${formatName(this.name, "ObjectCodec")} requires key "${key}" to deserialize ${obj}.`);
         }
-        return [key, codec.deserialize(void 0)];
+        return [];
       }
       try {
         const deserializedValue = codec.deserialize(obj[key]);
-        return [key, deserializedValue];
+        return [[key, deserializedValue]];
       } catch (e) {
         const error = e;
         throw new Error(`${formatName(this.name, "ObjectCodec")} encountered an error while deserializing value with key ${key}:

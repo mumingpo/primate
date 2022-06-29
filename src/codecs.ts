@@ -71,6 +71,7 @@ type Schema = { [key: string]: CodecInterface<any, any> };
 type InferObjectInternalAll<S> = { [key in keyof S]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never };
 type InferObjectPrimitiveAll<S> = { [key in keyof S]: S[key] extends CodecInterface<any, infer Primitive> ? Primitive : never };
 
+// migraine intensifies
 type InferObjectInternalRequired<S> = {
   [key in keyof S as S[key] extends RequiredCodecInterface<any, any> ? key : never]: S[key] extends CodecInterface<infer Internal, any> ? Internal : never 
 };
@@ -82,8 +83,8 @@ type InferObjectInternal<S> = InferObjectInternalRequired<S> & Partial<InferObje
 type InferObjectPrimitive<S> = InferObjectPrimitiveRequired<S> & Partial<InferObjectPrimitiveAll<S>>;
 
 // https://fettblog.eu/typescript-hasownproperty/
-function hasOwnProperty<T extends {}, K extends PropertyKey>(obj: T, prop: K): obj is T & Record<K, unknown> {
-  return obj.hasOwnProperty(prop);
+function hasProperty<T extends {}, K extends PropertyKey>(obj: T, prop: K): obj is T & Record<K, unknown> {
+  return prop in obj;
 };
 
 /**
@@ -102,15 +103,22 @@ class ObjectCodec<S extends Schema> implements CodecInterface<InferObjectInterna
 
   serialize(obj: InferObjectInternal<S>) {
     const serialized = Object.fromEntries(
-      Object.entries(this.schema).map((entry) => {
-        const key = entry[0];
-        const codec = entry[1];
+      Object.entries(this.schema).flatMap((entry) => {
+        const [key, codec] = entry;
+
+        if (!(key in obj)){
+          if (!codec.isOptional) {
+            // this should never happen if this library is written correctly... but just to be safe?
+            throw new Error(`${formatName(this.name, 'ObjectCodec')} requires key "${key}" to serialize ${obj}.`);
+          }
+          return [];
+        }
         try {
           const serializedValue = codec.serialize(obj[key]);
-          return [key, serializedValue];
+          return [[key, serializedValue]];
         } catch (e) {
           const error = e as Error;
-          throw new Error(`${formatName(this.name, 'ObjectCodec')} encountered an error while serializing value with key ${key}:\n${error.message}`);
+          throw new Error(`${formatName(this.name, 'ObjectCodec')} encountered an error while serializing value with key "${key}":\n${error.message}`);
         }
       }),
     );
@@ -127,17 +135,18 @@ class ObjectCodec<S extends Schema> implements CodecInterface<InferObjectInterna
     }
 
     const deserialized = Object.fromEntries(
-      Object.entries(this.schema).map((entry) => {
+      Object.entries(this.schema).flatMap((entry) => {
         const [key, codec] = entry;
-        if (!hasOwnProperty(obj, key)) {
+
+        if (!hasProperty(obj, key)) {
           if (!codec.isOptional) {
-            throw new Error(`${formatName(this.name, 'ObjectCodec')} cannot deserialize object without key ${key}.`);
+            throw new Error(`${formatName(this.name, 'ObjectCodec')} requires key "${key}" to deserialize ${obj}.`);
           }
-          return [key, codec.deserialize(undefined)];
+          return [];
         }
         try {
           const deserializedValue = codec.deserialize(obj[key]);
-          return [key, deserializedValue];
+          return [[key, deserializedValue]];
         } catch (e) {
           const error = e as Error;
           throw new Error(`${formatName(this.name, 'ObjectCodec')} encountered an error while deserializing value with key ${key}:\n${error.message}`);
