@@ -4,10 +4,13 @@
 
 Primate is developed to:
 
-* facilitate conversion between *internal formats* such as `Date` and *primitive* formats such as `string`.
+* facilitate conversion between *internal formats* such as `Date` and *primitive* formats such as `string` for storage or `JSON.stringify`.
+* For reusable types of data, bundle serializing logic with typecheck and validation logic for deserializing operations in a clean interface to be imported anywhere.
 * enable schema-based API design with type-annotation and stuff.
 
 Heavily influenced by [io-ts](https://www.npmjs.com/package/io-ts), but minus the parts that I didn't like (like seriously, wtf?).
+
+Although primate works in JavaScript, you need to use TypeScript to take the full advantage of the utility that this package offers.
 
 ## why?
 
@@ -22,6 +25,8 @@ This is some serious violation of the DRY principle, and the serialization and d
 
 ## example usage
 
+You can find some example usage in [example.ts](https://github.com/mumingpo/primate/blob/main/src/example.ts).
+
 ### primitive codec
 
 A primitive codec `serialize` an internal format to a primitive format, and `deserialize` a unknown typed object to an internal format.
@@ -33,10 +38,14 @@ import p from '@mumingpo/primate';
 
 const serializer = (d: Date) => (d.toISOString());
 const deserializer = (unk: unknown) => {
-  const date = new Date(`${unk}`);
+  const date = (typeof unk === 'number')
+    ? new Date(unk)
+    : new Date(`${unk}`);
+
   if (Number.isNaN(date.getTime())) {
     throw new Error(`${unk} cannot be parsed into a date!`);
   }
+
   return date;
 }
 const dateCodec = p.primitive(serializer, deserializer, 'dateCodec');
@@ -44,8 +53,11 @@ const dateCodec = p.primitive(serializer, deserializer, 'dateCodec');
 const dateString = '2000-01-01T00:00:00.000Z';
 const date = new Date(dateString);
 
+// returns dateString
 dateCodec.serialize(date);
-dateCodec.deserialize(dateString)
+
+// returns date
+dateCodec.deserialize(dateString);
 ```
 
 ### array codec
@@ -57,7 +69,10 @@ Can nest other objectCodecs and arrayCodecs.
 ```typescript
 const dateArrayCodec = p.array(dateCodec);
 
+// returns [dateString, dateString, dateString]
 dateArrayCodec.serialize([date, date, date]);
+
+// returns [date, date, date]
 dateArrayCodec.deserialize([dateString, dateString, dateString]);
 ```
 
@@ -68,7 +83,7 @@ An object codec applies a schema of objects over an object.
 Can nest other objectCodecs and arrayCodecs.
 
 ```typescript
-const stringCodec = strict.stringCodec;
+const stringCodec = p.primitive(/* ... */);
 
 const userCodec = p.object({
   name: stringCodec,
@@ -86,7 +101,7 @@ const userCodec = p.object({
 Generate types from codec to aid in schema-driven design.
 
 ```typescript
-import { InferInternal, InferPrimitive } from '@mumingpo/primate';
+import type { InferInternal, InferPrimitive } from '@mumingpo/primate';
 
 type User = InferInternal<typeof userCodec>;
 type Primate = InferPrimitive<typeof userCodec>; // cough
@@ -101,14 +116,16 @@ const user: User = {
   ],
 };
 
+// returns that of above with dates replaced by dateStrings
 userCodec.serialize(user);
 
 const primate: Primate = {
   name: 'Insert name here',
   birthDay: dateString,
-  favoriteColors: [],
+  favoriteColors: ['https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
 };
 
+// returns that of above with dateStrings replaced by dates
 userCodec.deserialize(primate);
 ```
 
@@ -117,9 +134,37 @@ userCodec.deserialize(primate);
 The following "strict" (raises error when deserializing wrong type) primitive codecs for basic types are defined in the `strict` package for your convenience.
 
 ```typescript
-import p, { strict } from '@mumingpo/primate';
+import { strict } from '@mumingpo/primate';
 
 strict.booleanCodec = p.primitive<boolean, boolean>(/* ... */);
 strict.numberCodec = p.primitive<number, number>(/* ... */);
 strict.stringCodec = p.primitive<string, string>(/* ... */);
+```
+
+### makeEnum
+
+Sometimes you would like to impose a range of allowed values. makeEnum provides utilities to do that for number and string, with or without a default value.
+
+```typescript
+import { makeEnum } from '@mumingpo/primate';
+
+const allowedNumItems = [0, 1, 2, 3] as const;
+// no default specified
+const numItemsCodec = makeEnum.makeEnumNumberCodec(allowedNumItems);
+
+// returns 0
+numItemsCodec.deserialize(0);
+
+// throws Error
+numItemsCodec.deserialize(4);
+
+const proteinOptions = ['ham', 'egg', 'cheese'] as const;
+// default specified
+const proteinOptionsCodec = makeEnum.makeEnumStringCodec(proteinOptions, 'ham');
+
+// returns 'cheese'
+proteinOptionsCodec.deserialize('cheese');
+
+// returns 'ham'
+proteinOptionsCodec.deserialize('chicken');
 ```

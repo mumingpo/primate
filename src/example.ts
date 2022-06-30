@@ -1,9 +1,6 @@
 // import p from '@mumingpo/primate';
-import p, {
-  strict,
-  InferInternal,
-  InferPrimitive,
-} from './index';
+import p, { strict, makeEnum } from './index';
+import type { InferInternal, InferPrimitive } from './index';
 
 // PrimitiveCodec
 
@@ -24,14 +21,20 @@ const dateCodec = p.primitive(serializer, deserializer, 'dateCodec');
 const dateString = '2000-01-01T00:00:00.000Z';
 const date = new Date(dateString);
 
+// returns dateString
 dateCodec.serialize(date);
-dateCodec.deserialize(dateString)
+
+// returns date
+dateCodec.deserialize(dateString);
 
 // ArrayCodec
 
 const dateArrayCodec = p.array(dateCodec);
 
+// returns [dateString, dateString, dateString]
 dateArrayCodec.serialize([date, date, date]);
+
+// returns [date, date, date]
 dateArrayCodec.deserialize([dateString, dateString, dateString]);
 
 // ObjectCodec
@@ -63,12 +66,33 @@ const user: User = {
   ],
 };
 
+// returns that of above with dates replaced by dateStrings
 userCodec.serialize(user);
 
 const primate: Primate = {
   name: 'Insert name here',
   birthDay: dateString,
-  favoriteColors: [],
+  favoriteColors: ['https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
 };
 
+// returns that of above with dateStrings replaced by dates
 userCodec.deserialize(primate);
+
+// makeEnum
+const allowedNumItems = [0, 1, 2, 3] as const;
+const numItemsCodec = makeEnum.makeEnumNumberCodec(allowedNumItems);
+
+// returns 0
+numItemsCodec.deserialize(0);
+
+// throws Error
+numItemsCodec.deserialize(4);
+
+const proteinOptions = ['ham', 'egg', 'cheese'] as const;
+const proteinOptionsCodec = makeEnum.makeEnumStringCodec(proteinOptions, 'ham');
+
+// returns 'cheese'
+proteinOptionsCodec.deserialize('cheese');
+
+// returns 'ham'
+proteinOptionsCodec.deserialize('chicken');
