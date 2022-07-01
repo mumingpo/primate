@@ -13,13 +13,13 @@ const makeEnumNumberCodec = <T extends readonly number[]>(allowedValues: T, defa
   const deserializer = (unk: unknown) => {
     if (typeof unk !== 'number') {
       if (defaultValue === null) {
-        throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) cannot deserialize "${unk} of type ${typeof unk}".`);
+        throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) cannot deserialize "${unk}" of type "${typeof unk}".`);
       }
       return defaultValue;
     }
     if (!(unk in allowedValues)) {
       if (defaultValue === null) {
-        throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}.`);
+        throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}".`);
       }
       return defaultValue;
     }
@@ -29,7 +29,7 @@ const makeEnumNumberCodec = <T extends readonly number[]>(allowedValues: T, defa
   const enumNumberCodec = new PrimitiveCodec<T[number], T[number]>(
     serializer,
     deserializer,
-    'enumNumberCodec  (allowedValues: ${allowedValues})',
+    `enumNumberCodec  (allowedValues: ${allowedValues})`,
   );
 
   return enumNumberCodec;
