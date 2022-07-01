@@ -200,6 +200,7 @@ var makeEnumNumberCodec = (allowedValues, defaultValue = null) => {
       if (defaultValue === null) {
         throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}.`);
       }
+      return defaultValue;
     }
     return unk;
   };
@@ -222,6 +223,7 @@ var makeEnumStringCodec = (allowedValues, defaultValue = void 0) => {
       if (defaultValue === void 0) {
         throw new Error(`enumStringCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}.`);
       }
+      return defaultValue;
     }
     return unk;
   };
