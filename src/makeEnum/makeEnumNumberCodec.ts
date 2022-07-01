@@ -21,6 +21,7 @@ const makeEnumNumberCodec = <T extends readonly number[]>(allowedValues: T, defa
       if (defaultValue === null) {
         throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}.`);
       }
+      return defaultValue;
     }
     return unk;
   };

@@ -142,7 +142,6 @@ test('OptionalCodec serialize/deserializes correctly', () => {
 });
 
 test('OptionalCodec should not introduce unecessary { key: undefined } entries', () => {
-  // TODO
   const userCodec = new ObjectCodec({
     username: stringCodec,
     birthday: new OptionalCodec(dateCodec),
