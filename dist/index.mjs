@@ -1,34 +1,4 @@
 "use strict";
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-
-// src/index.ts
-var src_exports = {};
-__export(src_exports, {
-  ArrayCodec: () => ArrayCodec,
-  ObjectCodec: () => ObjectCodec,
-  OptionalCodec: () => OptionalCodec,
-  PrimitiveCodec: () => PrimitiveCodec,
-  default: () => src_default,
-  makeEnum: () => makeEnum_default,
-  strict: () => strict_default
-});
-module.exports = __toCommonJS(src_exports);
 
 // src/codecs.ts
 var formatName = (name, codecType) => `${codecType}${name ? ` ${name}` : ""}`;
@@ -192,19 +162,19 @@ var makeEnumNumberCodec = (allowedValues, defaultValue = null) => {
   const deserializer4 = (unk) => {
     if (typeof unk !== "number") {
       if (defaultValue === null) {
-        throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) cannot deserialize "${unk} of type ${typeof unk}".`);
+        throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) cannot deserialize "${unk}" of type "${typeof unk}".`);
       }
       return defaultValue;
     }
     if (!(unk in allowedValues)) {
       if (defaultValue === null) {
-        throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}.`);
+        throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}".`);
       }
       return defaultValue;
     }
     return unk;
   };
-  const enumNumberCodec = new PrimitiveCodec(serializer4, deserializer4, "enumNumberCodec  (allowedValues: ${allowedValues})");
+  const enumNumberCodec = new PrimitiveCodec(serializer4, deserializer4, `enumNumberCodec  (allowedValues: ${allowedValues})`);
   return enumNumberCodec;
 };
 var makeEnumNumberCodec_default = makeEnumNumberCodec;
@@ -215,19 +185,19 @@ var makeEnumStringCodec = (allowedValues, defaultValue = void 0) => {
   const deserializer4 = (unk) => {
     if (typeof unk !== "string") {
       if (defaultValue === void 0) {
-        throw new Error(`enumStringCodec (allowedValues: ${allowedValues}) cannot deserialize "${unk} of type ${typeof unk}".`);
+        throw new Error(`enumStringCodec (allowedValues: ${allowedValues}) cannot deserialize "${unk}" of type "${typeof unk}".`);
       }
       return defaultValue;
     }
     if (!(unk in allowedValues)) {
       if (defaultValue === void 0) {
-        throw new Error(`enumStringCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}.`);
+        throw new Error(`enumStringCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}".`);
       }
       return defaultValue;
     }
     return unk;
   };
-  const enumStringCodec = new PrimitiveCodec(serializer4, deserializer4, "enumStringCodec  (allowedValues: ${allowedValues})");
+  const enumStringCodec = new PrimitiveCodec(serializer4, deserializer4, `enumStringCodec  (allowedValues: ${allowedValues})`);
   return enumStringCodec;
 };
 var makeEnumStringCodec_default = makeEnumStringCodec;
@@ -262,12 +232,12 @@ var primate_default = primate;
 
 // src/index.ts
 var src_default = primate_default;
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
+export {
   ArrayCodec,
   ObjectCodec,
   OptionalCodec,
   PrimitiveCodec,
-  makeEnum,
-  strict
-});
+  src_default as default,
+  makeEnum_default as makeEnum,
+  strict_default as strict
+};

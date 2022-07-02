@@ -2,10 +2,10 @@
   "name": "@mumingpo/primate",
   "version": "1.7.3",
   "description": "Set up conversion between JSON-serializable primitive Javascript objects and more complex internal objects such as Date and CryptoKey.",
-  "main": "./dist/index.js",
+  "main": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup ./src/index.ts --dts",
+    "build": "tsup ./src/index.ts --dts --format esm",
     "test": "jest --verbose ./test"
   },
   "repository": {
