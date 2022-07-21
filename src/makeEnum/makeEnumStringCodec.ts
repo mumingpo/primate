@@ -17,7 +17,7 @@ const makeEnumStringCodec = <T extends readonly string[]>(allowedValues: T, defa
       }
       return defaultValue;
     }
-    if (!(unk in allowedValues)) {
+    if (!allowedValues.includes(unk)) {
       if (defaultValue === undefined) {
         throw new Error(`enumStringCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}".`);
       }

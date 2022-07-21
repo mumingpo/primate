@@ -157,17 +157,17 @@ var strict = {
 var strict_default = strict;
 
 // src/makeEnum/makeEnumNumberCodec.ts
-var makeEnumNumberCodec = (allowedValues, defaultValue = null) => {
+var makeEnumNumberCodec = (allowedValues, defaultValue = void 0) => {
   const serializer4 = (n) => n;
   const deserializer4 = (unk) => {
     if (typeof unk !== "number") {
-      if (defaultValue === null) {
+      if (defaultValue === void 0) {
         throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) cannot deserialize "${unk}" of type "${typeof unk}".`);
       }
       return defaultValue;
     }
-    if (!(unk in allowedValues)) {
-      if (defaultValue === null) {
+    if (!allowedValues.includes(unk)) {
+      if (defaultValue === void 0) {
         throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}".`);
       }
       return defaultValue;
@@ -189,7 +189,7 @@ var makeEnumStringCodec = (allowedValues, defaultValue = void 0) => {
       }
       return defaultValue;
     }
-    if (!(unk in allowedValues)) {
+    if (!allowedValues.includes(unk)) {
       if (defaultValue === void 0) {
         throw new Error(`enumStringCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}".`);
       }

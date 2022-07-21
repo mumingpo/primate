@@ -76,7 +76,7 @@ declare const strict: {
 };
 
 declare const makeEnum: {
-    makeEnumNumberCodec: <T extends readonly number[]>(allowedValues: T, defaultValue?: T[number] | null) => PrimitiveCodec<T[number], T[number]>;
+    makeEnumNumberCodec: <T extends readonly number[]>(allowedValues: T, defaultValue?: T[number] | undefined) => PrimitiveCodec<T[number], T[number]>;
     makeEnumStringCodec: <T_1 extends readonly string[]>(allowedValues: T_1, defaultValue?: T_1[number] | undefined) => PrimitiveCodec<T_1[number], T_1[number]>;
 };
 

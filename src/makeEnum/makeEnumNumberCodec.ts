@@ -8,17 +8,17 @@ import { PrimitiveCodec } from '../codecs';
  * @throws error when (deserializing objects with inappropriate type or not in allowedValues) and (defaultValue is not provided).
  * @returns CodecInterface<typeof allowedValues[number], typeof allowedValues[number]>
  */
-const makeEnumNumberCodec = <T extends readonly number[]>(allowedValues: T, defaultValue: T[number] | null = null) => {
+const makeEnumNumberCodec = <T extends readonly number[]>(allowedValues: T, defaultValue: T[number] | undefined = undefined) => {
   const serializer = (n: T[number]) => (n);
   const deserializer = (unk: unknown) => {
     if (typeof unk !== 'number') {
-      if (defaultValue === null) {
+      if (defaultValue === undefined) {
         throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) cannot deserialize "${unk}" of type "${typeof unk}".`);
       }
       return defaultValue;
     }
-    if (!(unk in allowedValues)) {
-      if (defaultValue === null) {
+    if (!allowedValues.includes(unk)) {
+      if (defaultValue === undefined) {
         throw new Error(`enumNumberCodec (allowedValues: ${allowedValues}) does not allow the value "${unk}".`);
       }
       return defaultValue;
