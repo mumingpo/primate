@@ -54,14 +54,14 @@ class ArrayCodec<Internal, Primitive/* extends PJSO */> implements CodecInterfac
   }
 
   serialize(obj: Array<Internal>) {
-    return obj.map(this.codec.serialize);
+    return obj.map((elem) => (this.codec.serialize(elem)));
   }
 
   deserialize(obj: unknown) {
     if (!Array.isArray(obj)) {
       throw new Error(`${formatName(this.name, 'ArrayCodec')} cannot deserialize something that is not an array.`);
     }
-    return obj.map(this.codec.deserialize);
+    return obj.map((elem) => (this.codec.deserialize(elem)));
   }
 }
 

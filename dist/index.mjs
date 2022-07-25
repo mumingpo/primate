@@ -24,13 +24,13 @@ var ArrayCodec = class {
     this.name = name;
   }
   serialize(obj) {
-    return obj.map(this.codec.serialize);
+    return obj.map((elem) => this.codec.serialize(elem));
   }
   deserialize(obj) {
     if (!Array.isArray(obj)) {
       throw new Error(`${formatName(this.name, "ArrayCodec")} cannot deserialize something that is not an array.`);
     }
-    return obj.map(this.codec.deserialize);
+    return obj.map((elem) => this.codec.deserialize(elem));
   }
 };
 function hasProperty(obj, prop) {

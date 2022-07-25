@@ -87,6 +87,36 @@ test('ObjectCodec serialize/deserialize work as expected', () => {
     .toBe(time);
 });
 
+test('ArrayCodec(ObjectCode) serialize/deserialize work as expected', () => {
+  const userCodec = new ObjectCodec({
+    username: stringCodec,
+    birthday: dateCodec,
+  });
+  const usersCodec = new ArrayCodec(userCodec);
+
+  const username = 'Pope John XII';
+  const user = {
+    username,
+    birthday: date,
+  };
+  const unclothedUser = {
+    username,
+    birthday: dateString,
+  };
+
+  const users = [user, user, user];
+  const unclothedUsers = [unclothedUser, unclothedUser, unclothedUser];
+
+  expect(usersCodec.serialize(users))
+    .toEqual(unclothedUsers);
+
+  const reclothedUsers = usersCodec.deserialize(unclothedUsers);
+  expect(reclothedUsers[2].username)
+    .toBe(username);
+  expect(reclothedUsers[2].birthday.getTime())
+    .toBe(time);
+});
+
 test('ObjectCodec passes errors correctly.', () => {
   const userCodec = new ObjectCodec({
     username: stringCodec,
